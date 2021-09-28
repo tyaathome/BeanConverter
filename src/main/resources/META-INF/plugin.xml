@@ -4,6 +4,7 @@
     <name>BeanConverter</name>
     <vendor>tyaathome</vendor>
 
+    <depends>com.intellij.java</depends>
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
@@ -15,4 +16,11 @@
         <listener class="com.github.tyaathome.beanconverter.listeners.MyProjectManagerListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
     </applicationListeners>
+    <actions>
+        <action id="com.github.tyaathome.beanconverter.actions.BeanConverterAction"
+                class="com.github.tyaathome.beanconverter.actions.BeanConverterAction" text="Bean转换为ViewModel"
+                description="Bean转换为ViewModel desc">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>
