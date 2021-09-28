@@ -1,8 +1,9 @@
 package com.github.tyaathome.beanconverter.actions
 
-import com.github.tyaathome.beanconverter.bean.FieldBean
-import com.github.tyaathome.beanconverter.bean.FieldTypeBean
+import com.github.tyaathome.beanconverter.ui.bean.FieldBean
+import com.github.tyaathome.beanconverter.ui.bean.FieldTypeBean
 import com.github.tyaathome.beanconverter.dialog.FieldsDialog
+import com.github.tyaathome.beanconverter.ui.model.FiledTreeTableModel
 import com.github.tyaathome.beanconverter.utils.getDirectoryByPackageName
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
 import com.intellij.openapi.actionSystem.AnAction
@@ -14,7 +15,11 @@ import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.impl.source.PsiClassReferenceType
 import com.intellij.psi.util.PsiElementFilter
 import com.intellij.psi.util.PsiTreeUtil
+import org.jdesktop.swingx.JXTreeTable
+import org.jdesktop.swingx.treetable.DefaultMutableTreeTableNode
 import java.io.File
+import javax.swing.DefaultListSelectionModel
+import javax.swing.ListSelectionModel.SINGLE_SELECTION
 
 
 /**
@@ -134,15 +139,16 @@ class BeanConverterAction : AnAction() {
                 } else {
                     canonicalText
                 }
-                fieldList.add(FieldBean(item, item.name, FieldTypeBean(nanoTypeText, type.reference.canonicalText)))
+                fieldList.add(FieldBean(item, item.name, FieldTypeBean(nanoTypeText, type.reference.canonicalText), ""))
 
             }
         }
 
 
         // 显示对话框
-        val dialog = FieldsDialog()
+        val dialog = FieldsDialog(fieldList)
         dialog.okAction = doOkAction(e)
+
         dialog.showAndGet()
 
 
@@ -185,4 +191,6 @@ class BeanConverterAction : AnAction() {
 //        }
 
     }
+
+
 }

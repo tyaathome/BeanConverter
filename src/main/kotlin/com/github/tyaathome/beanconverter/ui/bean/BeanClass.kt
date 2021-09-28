@@ -1,5 +1,6 @@
-package com.github.tyaathome.beanconverter.bean
+package com.github.tyaathome.beanconverter.ui.bean
 
+import com.github.tyaathome.beanconverter.ui.TristateCheckBox
 import com.intellij.psi.PsiField
 
 /**
@@ -20,7 +21,12 @@ data class ExtendsBean(var name: String, var packageName: String) {
 /**
  * 字段数据bean
  */
-data class FieldBean(var psiFiled: PsiField, var fieldName: String, var fieldType: FieldTypeBean?)
+data class FieldBean(var psiFiled: PsiField, var fieldName: String, var fieldType: FieldTypeBean?, var comment: String): TristateCheckBox.Selector {
+    var selected = true
+    override fun setSelect(select: Boolean) {
+        selected = select
+    }
+}
 
 /**
  * 字段类型数据bean
