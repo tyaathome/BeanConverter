@@ -3,23 +3,22 @@ package com.github.tyaathome.beanconverter.actions
 import com.github.tyaathome.beanconverter.ui.bean.FieldBean
 import com.github.tyaathome.beanconverter.ui.bean.FieldTypeBean
 import com.github.tyaathome.beanconverter.dialog.FieldsDialog
-import com.github.tyaathome.beanconverter.ui.model.FiledTreeTableModel
 import com.github.tyaathome.beanconverter.utils.getDirectoryByPackageName
+import com.github.tyaathome.beanconverter.utils.showErrorDialog
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.ui.Messages
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.impl.source.PsiClassReferenceType
+import com.intellij.psi.javadoc.PsiDocComment
 import com.intellij.psi.util.PsiElementFilter
 import com.intellij.psi.util.PsiTreeUtil
-import org.jdesktop.swingx.JXTreeTable
-import org.jdesktop.swingx.treetable.DefaultMutableTreeTableNode
+import java.awt.Dimension
 import java.io.File
-import javax.swing.DefaultListSelectionModel
-import javax.swing.ListSelectionModel.SINGLE_SELECTION
 
 
 /**
@@ -29,62 +28,11 @@ import javax.swing.ListSelectionModel.SINGLE_SELECTION
  */
 class BeanConverterAction : AnAction() {
 
-    private val testMode = true
-
-    fun doOkAction(e: AnActionEvent): () -> Unit {
-        return {
-//            // 创建viewmodel类文件
-//            val viewModelClass = service.createClass(directory, "Testt", JavaTemplateUtil.INTERNAL_CLASS_TEMPLATE_NAME)
-//            viewModelClass.modifierList?.setModifierProperty(PsiModifier.PUBLIC, true)
-//            val viewModelFile = viewModelClass.containingFile as PsiJavaFile
-//
-//            WriteCommandAction.runWriteCommandAction(project) {
-//                val viewModelPackage = service.getPackage(directory)
-//                if (viewModelPackage != null) {
-//                    viewModelFile.packageName = viewModelPackage.qualifiedName
-//                }
-//
-//                for (item in psiClass.fields) {
-//                    if (item?.hasModifierProperty(PsiModifier.STATIC) == true) {
-//                        continue
-//                    }
-//                    println(item.name)
-//                    println(item.docComment)
-//                    // 获取注释元素列表
-//                    val comments =
-//                        PsiTreeUtil.collectElements(item, PsiElementFilter { return@PsiElementFilter it is PsiComment })
-//
-//                    val code = StringBuilder()
-//                    for (commentItem in comments) {
-//                        if (commentItem is PsiComment) {
-//                            code.append(commentItem.text).append("\n")
-//                        }
-//                    }
-//
-//                    val type = item.type
-//                    if (type is PsiClassReferenceType) {
-//                        code.append("public final androidx.lifecycle.MutableLiveData<${type.reference.canonicalText}> ${item.name} = new androidx.lifecycle.MutableLiveData<>();\n\n\n\n")
-//                        viewModelClass.add(factory.createFieldFromText(code.toString(), viewModelClass))
-////                    when {
-////                        type.equalsToText(CommonClassNames.JAVA_LANG_STRING) -> {
-////
-////                        }
-////                    }
-//
-//                    }
-//                }
-//
-//                val manager = JavaCodeStyleManager.getInstance(project)
-//                manager.optimizeImports(viewModelFile)
-//                manager.shortenClassReferences(viewModelClass)
-            }
-        }
-
     override fun actionPerformed(e: AnActionEvent) {
         // 数据检查
         val psiFile = e.getData(CommonDataKeys.PSI_FILE)
         if(psiFile !is PsiJavaFile) {
-            println("不支持该文件类型！")
+            showErrorDialog("不支持该文件类型！")
             return
         }
         val fileName = psiFile.name.split(".").let {
@@ -102,13 +50,13 @@ class BeanConverterAction : AnAction() {
             }
         }
         if(psiClass == null) {
-            println("没有找到对应的类")
+            showErrorDialog("没有找到对应的类")
             return
         }
 
         val project = e.project
         if(project == null) {
-            println("project 为空")
+            showErrorDialog("project 为空")
             return
         }
         val factory = JavaPsiFacade.getElementFactory(project)
@@ -116,81 +64,113 @@ class BeanConverterAction : AnAction() {
         val directory = psiFile.parent
         val service = JavaDirectoryService.getInstance()
         if(directory == null) {
-            println("父文件不是文件夹格式")
+            showErrorDialog("父文件不是文件夹格式")
             return
         }
-
-
 
         val fieldList = ArrayList<FieldBean>()
         for(item in psiClass.fields) {
             if(item?.hasModifierProperty(PsiModifier.STATIC) == true) {
                 continue
             }
-            // TODO: 2021/9/28 加注释功能
+            // 获取注释元素列表
+            val comments =
+                PsiTreeUtil.collectElements(
+                    item,
+                    PsiElementFilter { return@PsiElementFilter it is PsiComment })
 
+            val comment = StringBuilder()
+            for (commentItem in comments) {
+//                if(commentItem is PsiDocComment) {
+//                    comment.append(commentItem)
+//                }
+                if (commentItem is PsiComment) {
+                    comment.append(commentItem.text).append("\n")
+                }
+            }
             val type = item.type
             if(type is PsiClassReferenceType) {
-                var nanoTypeText = ""
                 val canonicalText = type.reference.canonicalText
                 val index = canonicalText.lastIndexOf(".")
-                nanoTypeText = if(index != -1) {
+                var nanoTypeText = if(index != -1) {
                     canonicalText.substring(index+1, canonicalText.length)
                 } else {
                     canonicalText
                 }
-                fieldList.add(FieldBean(item, item.name, FieldTypeBean(nanoTypeText, type.reference.canonicalText), ""))
+                fieldList.add(FieldBean(item, item.name, FieldTypeBean(type.reference.canonicalText, type.reference.canonicalText), comment.toString()))
 
             }
         }
 
+        var classFullName = ""
+        var className = psiFile.name
+        val array = className.split(".")
+        if(array.isNotEmpty()) {
+            className = array[0]
+        }
+        while(className.endsWith("Bean")) {
+            className = className.substring(0, className.indexOf("Bean"))
+        }
+        classFullName = "${psiFile.packageName}.${className}ViewModel"
 
         // 显示对话框
-        val dialog = FieldsDialog(fieldList)
-        dialog.okAction = doOkAction(e)
+        val dialog = FieldsDialog(classFullName, fieldList)
+        dialog.okAction = action@{ classPath, extendsBean, fieldList ->
+            val index = classPath.lastIndexOf(".")
+            if (index == -1) {
+                showErrorDialog("输入的类名称有误")
+                return@action
+            }
+            val pageName = classPath.substring(0, index)
+            val className = classPath.substring(index + 1, classPath.length)
+            val directory = getDirectoryByPackageName(psiFile, pageName)
+            if (directory != null) {
+                val file = File(
+                    directory.virtualFile.canonicalPath.plus("/$className.java")
+                )
+                if (file.exists()) {
+                    showErrorDialog("文件已存在")
+                    return@action
+                }
+                val viewModelClass =
+                    service.createClass(directory, className, JavaTemplateUtil.INTERNAL_CLASS_TEMPLATE_NAME)
+                viewModelClass.modifierList?.setModifierProperty(PsiModifier.PUBLIC, true)
+                val viewModelFile = viewModelClass.containingFile as PsiJavaFile
 
-        dialog.showAndGet()
+                WriteCommandAction.runWriteCommandAction(project) {
+                    val viewModelPackage = service.getPackage(directory)
+                    if (viewModelPackage != null) {
+                        viewModelFile.packageName = viewModelPackage.qualifiedName
+                    }
 
+                    for (item in fieldList) {
+                        if(!item.selected) {
+                            continue
+                        }
+                        val field = item.psiFiled
+                        if (field.hasModifierProperty(PsiModifier.STATIC)) {
+                            continue
+                        }
+                        println(field.name)
+                        println(field.docComment)
 
+                        val code = StringBuilder().append(item.comment)
+                        val type = field.type
+                        if (type is PsiClassReferenceType) {
+                            code.append("public final androidx.lifecycle.MutableLiveData<${item.fieldType.typeName}> ${item.fieldName} = new androidx.lifecycle.MutableLiveData<>();\n")
+                            viewModelClass.add(factory.createFieldFromText(code.toString(), viewModelClass))
+                        }
+                    }
 
+                    val manager = JavaCodeStyleManager.getInstance(project)
+                    manager.optimizeImports(viewModelFile)
+                    manager.shortenClassReferences(viewModelClass)
+                    dialog.dismiss()
+                }
+            }
+        }
 
-
-
-
-
-
-
-
-
-//        if(testMode) {
-//            // 通过路径获取文件
-//            val psiFile = e.getData(CommonDataKeys.PSI_FILE)
-//            if(psiFile is PsiJavaFile) {
-//                val pageName = "com.tyaathome.bean"
-//                val className = "Abc"
-//                val directory = getDirectoryByPackageName(psiFile, pageName)
-//                if (directory != null) {
-//                    val file = File(
-//                        directory.virtualFile.canonicalPath.plus("/$className.java")
-//                    )
-//                    if(file.exists()) {
-//                        println("文件已存在")
-//                        return
-//                    }
-//                    val viewModelClass = JavaDirectoryService.getInstance()
-//                        .createClass(directory, className, JavaTemplateUtil.INTERNAL_CLASS_TEMPLATE_NAME)
-//                }
-//            }
-//
-//            val dialog = FieldsDialog()
-//            dialog.okAction = {
-//                dialog.close(0)
-//            }
-//            dialog.showAndGet()
-//            return
-//        }
-
+        dialog.isVisible = true
     }
-
 
 }

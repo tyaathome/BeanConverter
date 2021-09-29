@@ -1,5 +1,6 @@
 package com.github.tyaathome.beanconverter.utils
 
+import com.intellij.openapi.ui.Messages
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiJavaFile
@@ -44,5 +45,9 @@ fun getDirectoryByPackageName(psiFile: PsiJavaFile, packageName: String): PsiDir
         }
     }
     return result
+}
+
+fun showErrorDialog(message: String) {
+    Messages.showErrorDialog(message, "错误")
 }
 

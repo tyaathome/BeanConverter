@@ -2,12 +2,11 @@ package com.github.tyaathome.beanconverter.dialog
 
 import com.github.tyaathome.beanconverter.ui.bean.ExtendsBean
 import com.github.tyaathome.beanconverter.ui.bean.FieldBean
-import com.intellij.openapi.ui.DialogWrapper
-import org.jdesktop.swingx.treetable.DefaultMutableTreeTableNode
-import java.awt.BasicStroke
-import java.awt.Color
+import com.github.tyaathome.beanconverter.ui.model.FieldTableCellEditor
+import com.github.tyaathome.beanconverter.ui.model.FieldTableCellRenderer
+import com.github.tyaathome.beanconverter.ui.model.FieldTableModel
+import com.intellij.ui.table.JBTable
 import java.awt.Dimension
-import java.awt.GridLayout
 import javax.swing.*
 
 
@@ -16,105 +15,76 @@ import javax.swing.*
  * Date: 2021/09/28
  * Desc:
  */
-class FieldsDialog(val fieldList: ArrayList<FieldBean>) : DialogWrapper(true) {
+class FieldsDialog(private val classFullName: String, private val fieldList: ArrayList<FieldBean>) : JFrame() {
 
     private lateinit var contentPane: JPanel
     private lateinit var filedPanel: JPanel
     private lateinit var sp: JScrollPane
-    private lateinit var buttonOK: JButton
-    private lateinit var buttonCancel: JButton
     private lateinit var classPanel: JPanel
     private lateinit var generateClass: JTextField
     private lateinit var extentClassComboBox: JComboBox<ExtendsBean>
     private lateinit var extentLabel: JLabel
+    private lateinit var treeTable: JBTable
+    private lateinit var btnOK: JButton
+    private lateinit var btnCancel: JButton
     private val extendsList = listOf(ExtendsBean("BaseViewModel", "com.yryc.onecar.databinding.viewmodel.BaseViewModel"))
-    private var defaultMutableTreeTableNodeList = ArrayList<DefaultMutableTreeTableNode>()
 
     init {
         title = "title"
-        init()
+        createCenterPanel()
+        setContentPane(contentPane)
+        size = Dimension(800, 350)
     }
 
-    override fun createCenterPanel(): JComponent {
-        contentPane.preferredSize = Dimension(900, 500)
+    fun createCenterPanel(): JComponent {
+        generateClass.text = classFullName
         for(item in extendsList) {
             extentClassComboBox.addItem(item)
         }
 
-//        val defaultListSelectionModel = DefaultListSelectionModel()
-//        defaultListSelectionModel.apply {
-//            selectionMode = ListSelectionModel.SINGLE_SELECTION
-//            addListSelectionListener {
-//                clearSelection()
-//            }
-//        }
-//
-//        defaultMutableTreeTableNodeList.clear()
-//        val treeTable = JXTreeTable(FiledTreeTableModel(createData(fieldList)))
-//        val manager = CheckTreeTableManager(treeTable)
-//        manager.selectionModel.addPathsByNodes(defaultMutableTreeTableNodeList)
-//        treeTable.apply {
-//            columnModel.getColumn(0).preferredWidth = 150
-//            expandAll()
-//            cellSelectionEnabled = false
-//            //selectionModel = defaultListSelectionModel
-//            rowHeight = 30
-//        }
-//        sp.setViewportView(treeTable)
-
-        val panel = JPanel(GridLayout(1, 4))
-        panel.add(getLabel("Key").apply { preferredSize = Dimension(50, 30) })
-        panel.add(getLabel("Data Type"))
-        panel.add(getLabel("Field name"))
-        panel.add(getLabel("Field Comment"))
-
-        //panel.preferredSize = Dimension(900, 30)
-        sp.setViewportView(panel)
-
-        val view = sp.viewport.view
-        if(view is JPanel) {
-            for(item in view.components) {
-                if(item is JLabel) {
-                    println(item.text)
-                }
+        val defaultListSelectionModel = DefaultListSelectionModel()
+        defaultListSelectionModel.apply {
+            selectionMode = ListSelectionModel.SINGLE_SELECTION
+            addListSelectionListener {
+                clearSelection()
             }
-            println(view)
         }
+
+        treeTable = JBTable(FieldTableModel(fieldList, 4))
+        treeTable.apply {
+            columnModel.getColumn(0).apply {
+                maxWidth = 50
+                cellRenderer = FieldTableCellRenderer()
+                cellEditor = FieldTableCellEditor()
+            }
+            rowHeight = 30
+            cellSelectionEnabled = false
+            putClientProperty("terminateEditOnFocusLost", true)
+            isFocusable = false
+        }
+        sp.setViewportView(treeTable)
+
+        btnOK.addActionListener {
+            if(okAction != null) {
+                val classPath = generateClass.text.toString()
+                val extendsBean = extentClassComboBox.selectedItem as ExtendsBean
+                okAction?.invoke(classPath, extendsBean, fieldList)
+            } else {
+                dismiss()
+            }
+        }
+
+        btnCancel.addActionListener {
+            dismiss()
+        }
+
         return contentPane
     }
 
-    private fun getLabel(text: String): JLabel {
-        return JLabel(text).apply {
-            preferredSize = Dimension(-1, 30)
-            horizontalAlignment = SwingConstants.CENTER
-            verticalAlignment = SwingConstants.CENTER
-//            val lineBorder = BorderFactory.createEmptyBorder(1, 1, 1, 1)
-//            //border = BorderFactory.createLineBorder(Color(122, 138, 153))
-//            val myBorder = BorderFactory.createCompoundBorder(
-//                BorderFactory.createLineBorder(Color(122, 138, 153), 1),
-//                BorderFactory.createEmptyBorder(0, 0, 0, 1)
-//            )
-            border = BorderFactory.createStrokeBorder(BasicStroke(0.1f))
-        }
+    fun dismiss() {
+        isVisible = false
+        dispose()
     }
 
-    private fun createData(fieldList: ArrayList<FieldBean>): DefaultMutableTreeTableNode {
-        val root = DefaultMutableTreeTableNode()
-        for(item in fieldList) {
-            val node = DefaultMutableTreeTableNode(item)
-            root.add(node)
-            defaultMutableTreeTableNodeList.add(node)
-        }
-        return root
-    }
-
-    override fun doOKAction() {
-        if(okAction != null) {
-            okAction?.invoke()
-        } else {
-            super.doOKAction()
-        }
-    }
-
-    public var okAction: (() -> Unit)? = null
+    var okAction: ((String, ExtendsBean, List<FieldBean>) -> Unit)? = null
 }
