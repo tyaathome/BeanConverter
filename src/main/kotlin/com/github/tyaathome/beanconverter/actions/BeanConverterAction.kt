@@ -15,10 +15,13 @@ import com.intellij.psi.*
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.impl.source.PsiClassReferenceType
 import com.intellij.psi.javadoc.PsiDocComment
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiElementFilter
 import com.intellij.psi.util.PsiTreeUtil
+import org.jetbrains.plugins.groovy.lang.resolve.processors.inference.type
 import java.awt.Dimension
 import java.io.File
+import java.util.regex.Pattern
 
 
 /**
@@ -108,6 +111,7 @@ class BeanConverterAction : AnAction() {
         if(array.isNotEmpty()) {
             className = array[0]
         }
+
         while(className.endsWith("Bean")) {
             className = className.substring(0, className.indexOf("Bean"))
         }
@@ -132,12 +136,15 @@ class BeanConverterAction : AnAction() {
                     showErrorDialog("文件已存在")
                     return@action
                 }
-                val viewModelClass =
-                    service.createClass(directory, className, JavaTemplateUtil.INTERNAL_CLASS_TEMPLATE_NAME)
+                // 生成viewModel文件
+                val viewModelClass = service.createClass(directory, className, JavaTemplateUtil.INTERNAL_CLASS_TEMPLATE_NAME)
                 viewModelClass.modifierList?.setModifierProperty(PsiModifier.PUBLIC, true)
-                val viewModelFile = viewModelClass.containingFile as PsiJavaFile
 
                 WriteCommandAction.runWriteCommandAction(project) {
+                    // 添加父类继承
+                    viewModelClass.extendsList?.add(PsiElementFactory.getInstance(project).createReferenceFromText(extendsBean.packageName, null))
+
+                    val viewModelFile = viewModelClass.containingFile as PsiJavaFile
                     val viewModelPackage = service.getPackage(directory)
                     if (viewModelPackage != null) {
                         viewModelFile.packageName = viewModelPackage.qualifiedName

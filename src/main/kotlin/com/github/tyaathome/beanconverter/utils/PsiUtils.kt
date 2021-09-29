@@ -18,8 +18,11 @@ fun getJavaSrc(psiFile: PsiJavaFile): PsiDirectory? {
     var psiDirectory: PsiDirectory? = null
     if(psiFile is PsiJavaFile) {
         val packageName = psiFile.packageName
-        val arg = packageName.split(".")
         psiDirectory = psiFile.containingDirectory
+        if(packageName.isEmpty()) {
+            return psiDirectory
+        }
+        val arg = packageName.split(".")
         for(str in arg) {
             psiDirectory = psiDirectory?.parent
             if(psiDirectory == null) {
