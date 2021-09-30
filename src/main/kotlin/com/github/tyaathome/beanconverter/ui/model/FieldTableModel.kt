@@ -11,7 +11,7 @@ import javax.swing.table.DefaultTableModel
  */
 class FieldTableModel(val fieldList: ArrayList<FieldBean>, private val columnCount: Int) : AbstractTableModel() {
 
-    private val names = listOf("", "Data Type", "Field name", "Field Comment")
+    private val names = listOf("", "Field Type", "Field name", "Field Comment")
     private val types = listOf(Object::class.java, Object::class.java, Object::class.java, Object::class.java)
 
     override fun getColumnClass(column: Int): Class<*> {
