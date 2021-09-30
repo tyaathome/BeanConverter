@@ -27,10 +27,13 @@ class FieldsDialog(private val classFullName: String, private val fieldList: Arr
     private lateinit var treeTable: JBTable
     private lateinit var btnOK: JButton
     private lateinit var btnCancel: JButton
-    private val extendsList = listOf(ExtendsBean("BaseViewModel", "com.yryc.onecar.databinding.viewmodel.BaseViewModel"))
+    private val extendsList = listOf(
+        ExtendsBean("BaseViewModel", "com.yryc.onecar.databinding.viewmodel.BaseViewModel"),
+        ExtendsBean("BaseItemViewModel", "com.yryc.onecar.databinding.viewmodel.BaseItemViewModel"),
+    )
 
     init {
-        title = "title"
+        title = "BeanConverter"
         createCenterPanel()
         setContentPane(contentPane)
         size = Dimension(800, 350)
