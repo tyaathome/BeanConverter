@@ -21,10 +21,7 @@ class GenerateCodeAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         // 数据检查
         val psiFile = e.getData(CommonDataKeys.PSI_FILE)
-        val editor = e.getData(CommonDataKeys.EDITOR);
-        if(editor == null) {
-            return
-        }
+        val editor = e.getData(CommonDataKeys.EDITOR) ?: return;
         if (psiFile !is PsiJavaFile) {
             showErrorDialog("不支持该文件类型！")
             return
