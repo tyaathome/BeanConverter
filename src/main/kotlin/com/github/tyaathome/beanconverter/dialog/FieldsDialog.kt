@@ -6,6 +6,7 @@ import com.github.tyaathome.beanconverter.ui.model.FieldTableCellEditor
 import com.github.tyaathome.beanconverter.ui.model.FieldTableCellRenderer
 import com.github.tyaathome.beanconverter.ui.model.FieldTableModel
 import com.intellij.ui.table.JBTable
+import org.apache.commons.lang.StringUtils
 import java.awt.Dimension
 import javax.swing.*
 
@@ -15,7 +16,7 @@ import javax.swing.*
  * Date: 2021/09/28
  * Desc:
  */
-class FieldsDialog(private val classFullName: String, private val fieldList: ArrayList<FieldBean>) : JFrame() {
+class FieldsDialog() : JFrame() {
 
     private lateinit var contentPane: JPanel
     private lateinit var filedPanel: JPanel
@@ -32,14 +33,35 @@ class FieldsDialog(private val classFullName: String, private val fieldList: Arr
         ExtendsBean("BaseItemViewModel", "com.yryc.onecar.databinding.viewmodel.BaseItemViewModel"),
     )
 
+    private lateinit var classFullName: String
+    private lateinit var fieldList: ArrayList<FieldBean>
+
     init {
         title = "BeanConverter"
-        createCenterPanel()
         setContentPane(contentPane)
         size = Dimension(800, 350)
     }
 
-    fun createCenterPanel(): JComponent {
+    private constructor(classFullName: String, fieldList: ArrayList<FieldBean>) : this() {
+        this.classFullName = classFullName
+        this.fieldList = fieldList
+        createCenterPanel()
+        classPanel.isVisible = !StringUtils.isEmpty(classFullName)
+    }
+
+    private constructor(fieldList: ArrayList<FieldBean>) : this("", fieldList)
+
+    companion object {
+        fun instance(classFullName: String, fieldList: ArrayList<FieldBean>): FieldsDialog {
+            return FieldsDialog(classFullName, fieldList)
+        }
+
+        fun instance(fieldList: ArrayList<FieldBean>): FieldsDialog {
+            return FieldsDialog(fieldList)
+        }
+    }
+
+    private fun createCenterPanel(): JComponent {
         generateClass.text = classFullName
         for(item in extendsList) {
             extentClassComboBox.addItem(item)

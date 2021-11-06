@@ -17,10 +17,15 @@
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
     </applicationListeners>
     <actions>
-        <action id="com.github.tyaathome.beanconverter.actions.BeanConverterAction"
-                class="com.github.tyaathome.beanconverter.actions.BeanConverterAction" text="Bean转换为ViewModel"
+        <action id="com.github.tyaathome.beanconverter.actions.GenerateFileAction"
+                class="com.github.tyaathome.beanconverter.actions.GenerateFileAction" text="Bean转换为ViewModel"
                 description="Bean转换为ViewModel desc">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+        </action>
+        <action id="com.github.tyaathome.beanconverter.actions.GenerateCodeAction"
+                class="com.github.tyaathome.beanconverter.actions.GenerateCodeAction" text="BeanConverter"
+                description="生成ViewModel代码">
+            <add-to-group group-id="GenerateGroup" anchor="last"/>
         </action>
     </actions>
 </idea-plugin>

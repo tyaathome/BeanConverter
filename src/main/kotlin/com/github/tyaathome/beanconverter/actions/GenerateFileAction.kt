@@ -1,9 +1,11 @@
 package com.github.tyaathome.beanconverter.actions
 
+import com.android.tools.idea.gradle.structure.model.helpers.parseFile
 import com.github.tyaathome.beanconverter.ui.bean.FieldBean
 import com.github.tyaathome.beanconverter.ui.bean.FieldTypeBean
 import com.github.tyaathome.beanconverter.dialog.FieldsDialog
 import com.github.tyaathome.beanconverter.utils.getDirectoryByPackageName
+import com.github.tyaathome.beanconverter.utils.parseClass
 import com.github.tyaathome.beanconverter.utils.showErrorDialog
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
 import com.intellij.openapi.actionSystem.AnAction
@@ -29,7 +31,7 @@ import java.util.regex.Pattern
  * Date: 2021/09/24
  * Desc:
  */
-class BeanConverterAction : AnAction() {
+class GenerateFileAction : AnAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
         // 数据检查
@@ -71,52 +73,7 @@ class BeanConverterAction : AnAction() {
             return
         }
 
-        val fieldList = ArrayList<FieldBean>()
-        for (item in psiClass.fields) {
-            if (item?.hasModifierProperty(PsiModifier.STATIC) == true) {
-                continue
-            }
-            // 获取注释元素列表
-            val comments =
-                PsiTreeUtil.collectElements(
-                    item,
-                    PsiElementFilter { return@PsiElementFilter it is PsiComment })
-
-            val commentSB = StringBuilder()
-            for (commentItem in comments) {
-//                if(commentItem is PsiDocComment) {
-//                    comment.append(commentItem)
-//                }
-                if (commentItem is PsiComment) {
-                    commentSB.append(commentItem.text).append("\n")
-                }
-            }
-            // 格式化注释
-            val comment = commentSB.toString().replace("\\s*|\t|\r|\b", "")
-                .replace(" ", "")
-                .replace("*", "")
-                .replace("/", "")
-                .replace("\n", " ").trim()
-            val type = item.type
-            if (type is PsiClassReferenceType) {
-                val canonicalText = type.reference.canonicalText
-                val index = canonicalText.lastIndexOf(".")
-                var nanoTypeText = if (index != -1) {
-                    canonicalText.substring(index + 1, canonicalText.length)
-                } else {
-                    canonicalText
-                }
-                fieldList.add(
-                    FieldBean(
-                        item,
-                        item.name,
-                        FieldTypeBean(type.reference.canonicalText, type.reference.canonicalText),
-                        comment
-                    )
-                )
-
-            }
-        }
+        val fieldList = parseClass(psiClass)
 
         var classFullName = ""
         var className = psiFile.name
@@ -131,7 +88,7 @@ class BeanConverterAction : AnAction() {
         classFullName = "${psiFile.packageName}.${className}ViewModel"
 
         // 显示对话框
-        val dialog = FieldsDialog(classFullName, fieldList)
+        val dialog = FieldsDialog.instance(classFullName, fieldList)
         dialog.okAction = action@{ classPath, extendsBean, fieldList ->
             val index = classPath.lastIndexOf(".")
             if (index == -1) {
@@ -168,6 +125,7 @@ class BeanConverterAction : AnAction() {
                             .createReferenceFromText(extendsBean.packageName, null)
                     )
 
+                    // 设置包名
                     val viewModelFile = viewModelClass.containingFile as PsiJavaFile
                     val viewModelPackage = service.getPackage(directory)
                     if (viewModelPackage != null) {
@@ -175,25 +133,19 @@ class BeanConverterAction : AnAction() {
                     }
 
                     for (item in fieldList) {
-                        if (!item.selected) {
+                        // 通过字段生成格式化后的字段代码
+                        val fieldCode = item.formatCode()
+                        if(fieldCode.isEmpty()) {
                             continue
                         }
-                        val field = item.psiFiled
-                        if (field.hasModifierProperty(PsiModifier.STATIC)) {
-                            continue
-                        }
-                        val code = StringBuilder().append("// ${item.comment}\n")
-                        val type = field.type
-                        if (type is PsiClassReferenceType) {
-                            code.append("public final androidx.lifecycle.MutableLiveData<${item.fieldType.typeName}> ${item.fieldName} = new androidx.lifecycle.MutableLiveData<>();\n")
-                            viewModelClass.add(factory.createFieldFromText(code.toString(), viewModelClass))
-                        }
+                        viewModelClass.add(factory.createFieldFromText(fieldCode, viewModelClass))
                     }
 
                     val manager = JavaCodeStyleManager.getInstance(project)
                     manager.optimizeImports(viewModelFile)
                     manager.shortenClassReferences(viewModelClass)
                     dialog.dismiss()
+                    println(viewModelClass.text)
                 }
             } else {
                 showErrorDialog("目标父文件夹不存在")
